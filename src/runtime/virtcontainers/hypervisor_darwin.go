@@ -9,6 +9,10 @@ import (
 	"fmt"
 )
 
+const (
+	QemuCCWVirtio = "qemu-ccw-virtio"
+)
+
 // NewHypervisor returns a hypervisor from a hypervisor type.
 func NewHypervisor(hType HypervisorType) (Hypervisor, error) {
 	switch hType {

@@ -11,6 +11,14 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
+const (
+	DefaultResourceControllerID = "/vc"
+)
+
+func IsCgroupV1() (bool, error) {
+	return false, errors.New("CgroupV1 not supported on Darwin")
+}
+
 type DarwinResourceController struct{}
 
 func RenameCgroupPath(path string) (string, error) {

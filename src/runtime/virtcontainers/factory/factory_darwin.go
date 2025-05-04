@@ -41,3 +41,10 @@ func (f *factory) GetBaseVM(ctx context.Context, config vc.VMConfig) (*vc.VM, er
 func (f *factory) CloseFactory(ctx context.Context) {
 	return
 }
+
+func checkVMConfig(config vc.VMConfig, config2 vc.VMConfig) error {
+	if config.HypervisorType != vc.QemuHypervisor {
+		return errors.New("unsupported hypervisor type")
+	}
+	return nil
+}

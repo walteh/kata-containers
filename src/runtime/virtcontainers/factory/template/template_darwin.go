@@ -7,4 +7,8 @@
 
 package template
 
+import "time"
+
 type template struct{}
+
+var templateWaitForAgent = 2 * time.Second
