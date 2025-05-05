@@ -676,13 +676,16 @@ func WithCDI(annotations map[string]string, cdiSpecDirs []string, spec *specs.Sp
 		return spec, nil
 	}
 
-	var registry cdi.Registry
+	var registry *cdi.Cache
 	if len(cdiSpecDirs) > 0 {
 		// We can override the directories where to search for CDI specs
 		// if needed, the default is /etc/cdi /var/run/cdi
-		registry = cdi.GetRegistry(cdi.WithSpecDirs(cdiSpecDirs...))
+		registry, err = cdi.NewCache(cdi.WithSpecDirs(cdiSpecDirs...))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create CDI cache: %w", err)
+		}
 	} else {
-		registry = cdi.GetRegistry()
+		registry = cdi.GetDefaultCache()
 	}
 
 	if err = registry.Refresh(); err != nil {

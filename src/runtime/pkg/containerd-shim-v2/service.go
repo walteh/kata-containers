@@ -23,6 +23,9 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	cdruntime "github.com/containerd/containerd/runtime"
 	cdshim "github.com/containerd/containerd/runtime/v2/shim"
+
+	cdshimpkgv2 "github.com/containerd/containerd/v2/pkg/shim"
+	"github.com/containerd/containerd/v2/pkg/shutdown"
 	"github.com/containerd/typeurl/v2"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/katautils"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/katautils/katatrace"
@@ -71,7 +74,7 @@ var shimLog = logrus.WithFields(logrus.Fields{
 })
 
 // New returns a new shim service that can be used via GRPC
-func New(ctx context.Context, id string, publisher cdshim.Publisher, shutdown func()) (cdshim.Shim, error) {
+func New(ctx context.Context, id string, publisher cdshimpkgv2.Publisher, shutdown shutdown.Service) (taskAPI.TaskService, error) {
 	shimLog = shimLog.WithFields(logrus.Fields{
 		"sandbox": id,
 		"pid":     os.Getpid(),
@@ -99,7 +102,7 @@ func New(ctx context.Context, id string, publisher cdshim.Publisher, shutdown fu
 		containers: make(map[string]*container),
 		events:     make(chan interface{}, chSize),
 		ec:         make(chan exit, bufferSize),
-		cancel:     shutdown,
+		cancel:     shutdown.Shutdown,
 		namespace:  ns,
 	}
 
@@ -137,6 +140,8 @@ type service struct {
 	events chan interface{}
 
 	cancel func()
+
+	_shutdown shutdown.Service
 
 	id string
 
