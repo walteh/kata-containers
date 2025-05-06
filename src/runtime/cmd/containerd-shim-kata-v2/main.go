@@ -6,10 +6,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
-	shimapi "github.com/containerd/containerd/runtime/v2/shim"
+	shimapi "github.com/containerd/containerd/v2/pkg/shim"
 
 	shim "github.com/kata-containers/kata-containers/src/runtime/pkg/containerd-shim-v2"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/katautils"
@@ -23,10 +24,12 @@ func shimConfig(config *shimapi.Config) {
 
 func main() {
 
+	ctx := context.Background()
+
 	if len(os.Args) == 2 && os.Args[1] == "--version" {
 		fmt.Printf("%s containerd shim (Golang): id: %q, version: %s, commit: %v\n", katautils.PROJECT, types.DefaultKataRuntimeName, katautils.VERSION, katautils.COMMIT)
 		os.Exit(0)
 	}
 
-	shimapi.Run(types.DefaultKataRuntimeName, shim.New, shimConfig)
+	shimapi.Run(ctx, shim.New, shimConfig)
 }

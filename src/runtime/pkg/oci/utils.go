@@ -27,8 +27,8 @@ import (
 	"syscall"
 
 	"github.com/BurntSushi/toml"
-	ctrAnnotations "github.com/containerd/containerd/pkg/cri/annotations"
 	podmanAnnotations "github.com/containers/podman/v4/pkg/annotations"
+	"github.com/kata-containers/kata-containers/src/runtime/pkg/oci/annotations"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -56,19 +56,19 @@ var (
 
 	// CRIContainerTypeKeyList lists all the CRI keys that could define
 	// the container type from annotations in the config.json.
-	CRIContainerTypeKeyList = []string{ctrAnnotations.ContainerType, podmanAnnotations.ContainerType, dockershimAnnotations.ContainerTypeLabelKey}
+	CRIContainerTypeKeyList = []string{annotations.ContainerType, podmanAnnotations.ContainerType, dockershimAnnotations.ContainerTypeLabelKey}
 
 	// CRISandboxNameKeyList lists all the CRI keys that could define
 	// the sandbox ID (sandbox ID) from annotations in the config.json.
-	CRISandboxNameKeyList = []string{ctrAnnotations.SandboxID, podmanAnnotations.SandboxID, dockershimAnnotations.SandboxIDLabelKey}
+	CRISandboxNameKeyList = []string{annotations.SandboxID, podmanAnnotations.SandboxID, dockershimAnnotations.SandboxIDLabelKey}
 
 	// CRIContainerTypeList lists all the maps from CRI ContainerTypes annotations
 	// to a virtcontainers ContainerType.
 	CRIContainerTypeList = []annotationContainerType{
 		{podmanAnnotations.ContainerTypeSandbox, vc.PodSandbox},
 		{podmanAnnotations.ContainerTypeContainer, vc.PodContainer},
-		{ctrAnnotations.ContainerTypeSandbox, vc.PodSandbox},
-		{ctrAnnotations.ContainerTypeContainer, vc.PodContainer},
+		{annotations.ContainerTypeSandbox, vc.PodSandbox},
+		{annotations.ContainerTypeContainer, vc.PodContainer},
 		{dockershimAnnotations.ContainerTypeLabelSandbox, vc.PodSandbox},
 		{dockershimAnnotations.ContainerTypeLabelContainer, vc.PodContainer},
 	}
@@ -1357,7 +1357,7 @@ func CalculateSandboxSizing(spec *specs.Spec) (numCPU float32, memSizeMB uint32)
 	//  Annotations[SandboxCPUPeriod] = "100000"
 	//  Annotations[SandboxCPUQuota] = "220000"
 	// ... to result in VM resources of 1 (MB) for memory, and 3 for CPU (2200 mCPU rounded up to 3).
-	annotation, ok := spec.Annotations[ctrAnnotations.SandboxCPUPeriod]
+	annotation, ok := spec.Annotations[annotations.SandboxCPUPeriod]
 	if ok {
 		period, err = strconv.ParseUint(annotation, 10, 64)
 		if err != nil {
@@ -1366,7 +1366,7 @@ func CalculateSandboxSizing(spec *specs.Spec) (numCPU float32, memSizeMB uint32)
 		}
 	}
 
-	annotation, ok = spec.Annotations[ctrAnnotations.SandboxCPUQuota]
+	annotation, ok = spec.Annotations[annotations.SandboxCPUQuota]
 	if ok {
 		quota, err = strconv.ParseInt(annotation, 10, 64)
 		if err != nil {
@@ -1375,7 +1375,7 @@ func CalculateSandboxSizing(spec *specs.Spec) (numCPU float32, memSizeMB uint32)
 		}
 	}
 
-	annotation, ok = spec.Annotations[ctrAnnotations.SandboxMem]
+	annotation, ok = spec.Annotations[annotations.SandboxMem]
 	if ok {
 		memory, err = strconv.ParseInt(annotation, 10, 64)
 		if err != nil {

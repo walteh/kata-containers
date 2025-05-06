@@ -10,30 +10,28 @@ import (
 	"fmt"
 	"io"
 	"os"
-	sysexec "os/exec"
-	goruntime "runtime"
 	"sync"
 	"syscall"
 	"time"
 
 	eventstypes "github.com/containerd/containerd/api/events"
-	taskAPI "github.com/containerd/containerd/api/runtime/task/v2"
+	taskAPI "github.com/containerd/containerd/api/runtime/task/v3"
 	"github.com/containerd/containerd/api/types/task"
-	"github.com/containerd/containerd/errdefs"
-	"github.com/containerd/containerd/namespaces"
-	cdruntime "github.com/containerd/containerd/runtime"
-	cdshim "github.com/containerd/containerd/runtime/v2/shim"
+	cdruntime "github.com/containerd/containerd/v2/core/runtime"
+	"github.com/containerd/containerd/v2/pkg/namespaces"
+	"github.com/containerd/errdefs"
+	"github.com/containerd/errdefs/pkg/errgrpc"
+	"github.com/containerd/ttrpc"
 
-	cdshimpkgv2 "github.com/containerd/containerd/v2/pkg/shim"
+	cdshim "github.com/containerd/containerd/v2/pkg/shim"
 	"github.com/containerd/containerd/v2/pkg/shutdown"
 	"github.com/containerd/typeurl/v2"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/katautils"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/katautils/katatrace"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/oci"
-	"github.com/kata-containers/kata-containers/src/runtime/pkg/utils"
 	vc "github.com/kata-containers/kata-containers/src/runtime/virtcontainers"
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/compatoci"
-	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
+	katatypes "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -60,8 +58,8 @@ const (
 )
 
 var (
-	empty                     = &emptypb.Empty{}
-	_     taskAPI.TaskService = (taskAPI.TaskService)(&service{})
+	empty                          = &emptypb.Empty{}
+	_     taskAPI.TTRPCTaskService = (taskAPI.TTRPCTaskService)(&service{})
 )
 
 // concrete virtcontainer implementation
@@ -73,8 +71,10 @@ var shimLog = logrus.WithFields(logrus.Fields{
 	"name":   "containerd-shim-v2",
 })
 
+var _ cdshim.TTRPCService = &service{}
+
 // New returns a new shim service that can be used via GRPC
-func New(ctx context.Context, id string, publisher cdshimpkgv2.Publisher, shutdown shutdown.Service) (taskAPI.TaskService, error) {
+func New(ctx context.Context, id string, publisher cdshim.Publisher, shutdown shutdown.Service) (taskAPI.TTRPCTaskService, error) {
 	shimLog = shimLog.WithFields(logrus.Fields{
 		"sandbox": id,
 		"pid":     os.Getpid(),
@@ -89,6 +89,8 @@ func New(ctx context.Context, id string, publisher cdshimpkgv2.Publisher, shutdo
 	}
 	vci.SetLogger(ctx, shimLog)
 	katautils.SetLogger(ctx, shimLog, shimLog.Logger.Level)
+
+	shimLog.Info("New shim service")
 
 	ns, found := namespaces.Namespace(ctx)
 	if !found {
@@ -160,129 +162,10 @@ type service struct {
 	pid uint32
 }
 
-func newCommand(ctx context.Context, id, containerdBinary, containerdAddress string) (*sysexec.Cmd, error) {
-	ns, err := namespaces.NamespaceRequired(ctx)
-	if err != nil {
-		return nil, err
-	}
-	self, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	args := []string{
-		"-namespace", ns,
-		"-address", containerdAddress,
-		"-publish-binary", containerdBinary,
-		"-id", id,
-	}
-	opts := ctx.Value(cdshim.OptsKey{}).(cdshim.Opts)
-	if opts.Debug {
-		args = append(args, "-debug")
-	}
-	cmd := sysexec.Command(self, args...)
-	cmd.Dir = cwd
-
-	// Set the go max process to 2 in case the shim forks too much process
-	cmd.Env = append(os.Environ(), "GOMAXPROCS=2")
-
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
-
-	return cmd, nil
-}
-
-// StartShim is a binary call that starts a kata shimv2 service which will
-// implement the ShimV2 APIs such as create/start/update etc containers.
-func (s *service) StartShim(ctx context.Context, opts cdshim.StartOpts) (_ string, retErr error) {
-	bundlePath, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	address, err := getAddress(ctx, bundlePath, opts.Address, opts.ID)
-	if err != nil {
-		return "", err
-	}
-	if address != "" {
-		if err := cdshim.WriteAddress("address", address); err != nil {
-			return "", err
-		}
-		return address, nil
-	}
-
-	cmd, err := newCommand(ctx, opts.ID, opts.ContainerdBinary, opts.Address)
-	if err != nil {
-		return "", err
-	}
-
-	address, err = cdshim.SocketAddress(ctx, opts.Address, opts.ID)
-	if err != nil {
-		return "", err
-	}
-
-	socket, err := cdshim.NewSocket(address)
-
-	if err != nil {
-		if !cdshim.SocketEaddrinuse(err) {
-			return "", err
-		}
-		if err := cdshim.RemoveSocket(address); err != nil {
-			return "", errors.Wrap(err, "remove already used socket")
-		}
-		if socket, err = cdshim.NewSocket(address); err != nil {
-			return "", err
-		}
-	}
-
-	defer func() {
-		if retErr != nil {
-			socket.Close()
-			_ = cdshim.RemoveSocket(address)
-		}
-	}()
-
-	f, err := socket.File()
-	if err != nil {
-		return "", err
-	}
-
-	cmd.ExtraFiles = append(cmd.ExtraFiles, f)
-
-	goruntime.LockOSThread()
-	if os.Getenv("SCHED_CORE") != "" {
-		if err := utils.Create(utils.ProcessGroup); err != nil {
-			return "", errors.Wrap(err, "enable sched core support")
-		}
-	}
-
-	if err := setupMntNs(); err != nil {
-		return "", err
-	}
-
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-
-	goruntime.UnlockOSThread()
-
-	defer func() {
-		if retErr != nil {
-			cmd.Process.Kill()
-		}
-	}()
-
-	if err = cdshim.WritePidFile("shim.pid", cmd.Process.Pid); err != nil {
-		return "", err
-	}
-	if err = cdshim.WriteAddress("address", address); err != nil {
-		return "", err
-	}
-	return address, nil
+// RegisterTTRPC implements shim.TTRPCService.
+func (s *service) RegisterTTRPC(server *ttrpc.Server) error {
+	taskAPI.RegisterTTRPCTaskService(server, s)
+	return nil
 }
 
 func (s *service) send(evt interface{}) {
@@ -344,7 +227,7 @@ func (s *service) Cleanup(ctx context.Context) (_ *taskAPI.DeleteResponse, err e
 	}()
 
 	if s.id == "" {
-		return nil, errdefs.ToGRPCf(errdefs.ErrInvalidArgument, "the container id is empty, please specify the container id")
+		return nil, errgrpc.ToGRPCf(errdefs.ErrInvalidArgument, "the container id is empty, please specify the container id")
 	}
 
 	path, err := os.Getwd()
@@ -474,7 +357,7 @@ func (s *service) Start(ctx context.Context, r *taskAPI.StartRequest) (_ *taskAP
 	if r.ExecID == "" {
 		err = startContainer(spanCtx, s, c)
 		if err != nil {
-			return nil, errdefs.ToGRPC(err)
+			return nil, errgrpc.ToGRPC(err)
 		}
 		s.send(&eventstypes.TaskStart{
 			ContainerID: c.id,
@@ -484,7 +367,7 @@ func (s *service) Start(ctx context.Context, r *taskAPI.StartRequest) (_ *taskAP
 		//start an exec
 		_, err = startExec(spanCtx, s, r.ID, r.ExecID)
 		if err != nil {
-			return nil, errdefs.ToGRPC(err)
+			return nil, errgrpc.ToGRPC(err)
 		}
 		s.send(&eventstypes.TaskExecStarted{
 			ContainerID: c.id,
@@ -574,12 +457,12 @@ func (s *service) Exec(ctx context.Context, r *taskAPI.ExecProcessRequest) (_ *e
 	}
 
 	if execs := c.execs[r.ExecID]; execs != nil {
-		return nil, errdefs.ToGRPCf(errdefs.ErrAlreadyExists, "id %s", r.ExecID)
+		return nil, errgrpc.ToGRPCf(errdefs.ErrAlreadyExists, "id %s", r.ExecID)
 	}
 
 	execs, err := newExec(c, r.Stdin, r.Stdout, r.Stderr, r.Terminal, r.Spec)
 	if err != nil {
-		return nil, errdefs.ToGRPC(err)
+		return nil, errgrpc.ToGRPC(err)
 	}
 
 	c.execs[r.ExecID] = execs
@@ -915,7 +798,7 @@ func (s *service) Checkpoint(ctx context.Context, r *taskAPI.CheckpointTaskReque
 		rpcDurationsHistogram.WithLabelValues("checkpoint").Observe(float64(time.Since(start).Nanoseconds() / int64(time.Millisecond)))
 	}()
 
-	return nil, errdefs.ToGRPCf(errdefs.ErrNotImplemented, "service Checkpoint")
+	return nil, errgrpc.ToGRPCf(errdefs.ErrNotImplemented, "service Checkpoint")
 }
 
 // Connect returns shim information such as the shim's pid
@@ -1040,12 +923,12 @@ func (s *service) Update(ctx context.Context, r *taskAPI.UpdateTaskRequest) (_ *
 	}
 	resources, ok := v.(*specs.LinuxResources)
 	if !ok {
-		return nil, errdefs.ToGRPCf(errdefs.ErrInvalidArgument, "Invalid resources type for %s", s.id)
+		return nil, errgrpc.ToGRPCf(errdefs.ErrInvalidArgument, "Invalid resources type for %s", s.id)
 	}
 
 	err = s.sandbox.UpdateContainer(spanCtx, r.ID, *resources)
 	if err != nil {
-		return nil, errdefs.ToGRPC(err)
+		return nil, errgrpc.ToGRPC(err)
 	}
 
 	return empty, nil
@@ -1127,7 +1010,7 @@ func (s *service) getContainer(id string) (*container, error) {
 	c := s.containers[id]
 
 	if c == nil {
-		return nil, errdefs.ToGRPCf(errdefs.ErrNotFound, "container does not exist %s", id)
+		return nil, errgrpc.ToGRPCf(errdefs.ErrNotFound, "container does not exist %s", id)
 	}
 
 	return c, nil
@@ -1141,13 +1024,13 @@ func (s *service) getContainerStatus(containerID string) (task.Status, error) {
 
 	var status task.Status
 	switch cStatus.State.State {
-	case types.StateReady:
+	case katatypes.StateReady:
 		status = task.Status_CREATED
-	case types.StateRunning:
+	case katatypes.StateRunning:
 		status = task.Status_RUNNING
-	case types.StatePaused:
+	case katatypes.StatePaused:
 		status = task.Status_PAUSED
-	case types.StateStopped:
+	case katatypes.StateStopped:
 		status = task.Status_STOPPED
 	}
 

@@ -19,10 +19,9 @@ import (
 	"strings"
 	"syscall"
 
-	taskAPI "github.com/containerd/containerd/api/runtime/task/v2"
+	taskAPI "github.com/containerd/containerd/api/runtime/task/v3"
 	containerd_types "github.com/containerd/containerd/api/types"
-	"github.com/containerd/containerd/mount"
-	"github.com/containerd/typeurl/v2"
+	"github.com/containerd/containerd/v2/core/mount"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/device/config"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/utils"
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers"
@@ -33,10 +32,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	// only register the proto type
-	crioption "github.com/containerd/containerd/pkg/runtimeoptions/v1"
-	_ "github.com/containerd/containerd/runtime/linux/runctypes"
-	_ "github.com/containerd/containerd/runtime/v2/runc/options"
-	oldcrioption "github.com/containerd/cri-containerd/pkg/api/runtimeoptions/v1"
+	// _ "github.com/containerd/containerd/v2/core/runtime/linux/runctypes"
+	// _ "github.com/containerd/containerd/v2/core/runtime/runc/options"
 
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/katautils"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/katautils/katatrace"
@@ -262,26 +259,27 @@ func loadRuntimeConfig(s *service, r *taskAPI.CreateTaskRequest, anno map[string
 	}
 	configPath := oci.GetSandboxConfigPath(anno)
 	if configPath == "" && r.Options != nil {
-		v, err := typeurl.UnmarshalAny(r.Options)
-		if err != nil {
-			return nil, err
-		}
-		option, ok := v.(*crioption.Options)
-		// cri default runtime handler will pass a linux runc options,
-		// and we'll ignore it.
-		if ok {
-			configPath = option.ConfigPath
-		} else {
-			// Some versions of containerd, such as 1.4.3, and 1.4.4
-			// still rely on the runtime options coming from
-			// github.com/containerd/cri-containerd/pkg/api/runtimeoptions/v1
-			// Knowing that, instead of breaking compatibility with such
-			// versions, let's work this around on our side
-			oldOption, ok := v.(*oldcrioption.Options)
-			if ok {
-				configPath = oldOption.ConfigPath
-			}
-		}
+		// v, err := typeurl.UnmarshalAny(r.Options)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// option, ok := v.(*crioption.CreateOpts)
+		// // cri default runtime handler will pass a linux runc options,
+		// // and we'll ignore it.
+		// if ok {
+		// 	configPath = option.RuntimeOptions.
+		// } else {
+		// 	// Some versions of containerd, such as 1.4.3, and 1.4.4
+		// 	// still rely on the runtime options coming from
+		// 	// github.com/containerd/cri-containerd/pkg/api/runtimeoptions/v1
+		// 	// Knowing that, instead of breaking compatibility with such
+		// 	// versions, let's work this around on our side
+		// 	oldOption, ok := v.(*oldcrioption.Options)
+		// 	if ok {
+		// 		configPath = oldOption.ConfigPath
+		// 	}
+		// }
+		panic("loadRuntimeConfig not implemented")
 	}
 
 	// Try to get the config file from the env KATA_CONF_FILE

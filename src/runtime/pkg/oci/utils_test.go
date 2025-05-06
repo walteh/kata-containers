@@ -13,12 +13,12 @@ import (
 	"strings"
 	"testing"
 
-	ctrAnnotations "github.com/containerd/containerd/pkg/cri/annotations"
 	podmanAnnotations "github.com/containers/podman/v4/pkg/annotations"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/device/config"
+	"github.com/kata-containers/kata-containers/src/runtime/pkg/oci/annotations"
 	vc "github.com/kata-containers/kata-containers/src/runtime/virtcontainers"
 	vcAnnotations "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/annotations"
 	dockerAnnotations "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/annotations/dockershim"
@@ -200,22 +200,22 @@ func TestContainerType(t *testing.T) {
 		},
 		{
 			description:     "unexpected annotation, expect error",
-			annotationKey:   ctrAnnotations.ContainerType,
+			annotationKey:   annotations.ContainerType,
 			annotationValue: "foo",
 			expectedType:    vc.UnknownContainerType,
 			expectedErr:     true,
 		},
 		{
 			description:     "containerd sandbox",
-			annotationKey:   ctrAnnotations.ContainerType,
-			annotationValue: string(ctrAnnotations.ContainerTypeSandbox),
+			annotationKey:   annotations.ContainerType,
+			annotationValue: string(annotations.ContainerTypeSandbox),
 			expectedType:    vc.PodSandbox,
 			expectedErr:     false,
 		},
 		{
 			description:     "containerd container",
-			annotationKey:   ctrAnnotations.ContainerType,
-			annotationValue: string(ctrAnnotations.ContainerTypeContainer),
+			annotationKey:   annotations.ContainerType,
+			annotationValue: string(annotations.ContainerTypeContainer),
 			expectedType:    vc.PodContainer,
 			expectedErr:     false,
 		},
@@ -1133,9 +1133,9 @@ func makeSizingAnnotations(memory, quota, period string) *specs.Spec {
 	spec := specs.Spec{
 		Annotations: make(map[string]string),
 	}
-	spec.Annotations[ctrAnnotations.SandboxCPUPeriod] = period
-	spec.Annotations[ctrAnnotations.SandboxCPUQuota] = quota
-	spec.Annotations[ctrAnnotations.SandboxMem] = memory
+	spec.Annotations[annotations.SandboxCPUPeriod] = period
+	spec.Annotations[annotations.SandboxCPUQuota] = quota
+	spec.Annotations[annotations.SandboxMem] = memory
 
 	return &spec
 }

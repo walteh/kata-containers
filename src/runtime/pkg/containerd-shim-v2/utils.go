@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/containerd/containerd/mount"
-	cdshim "github.com/containerd/containerd/runtime/v2/shim"
+	"github.com/containerd/containerd/v2/core/mount"
+	cdshim "github.com/containerd/containerd/v2/pkg/shim"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/katautils"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/oci"
 	vc "github.com/kata-containers/kata-containers/src/runtime/virtcontainers"
@@ -78,7 +78,7 @@ func validBundle(containerID, bundlePath string) (string, error) {
 	return resolved, nil
 }
 
-func getAddress(ctx context.Context, bundlePath, address, id string) (string, error) {
+func getAddress(ctx context.Context, bundlePath, address, id string, debug bool) (string, error) {
 	var err error
 
 	// Checks the MUST and MUST NOT from OCI runtime specification
@@ -101,7 +101,7 @@ func getAddress(ctx context.Context, bundlePath, address, id string) (string, er
 		if err != nil {
 			return "", err
 		}
-		address, err := cdshim.SocketAddress(ctx, address, sandboxID)
+		address, err := cdshim.SocketAddress(ctx, address, sandboxID, debug)
 		if err != nil {
 			return "", err
 		}

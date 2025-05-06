@@ -3,13 +3,14 @@ module github.com/kata-containers/kata-containers/src/runtime
 // Keep in sync with version in versions.yaml
 go 1.24.2
 
-// exclude github.com/opencontainers/cgroups v0.0.2
-
-// exclude github.com/opencontainers/cgroups v0.0.1
-
-// replace github.com/opencontainers/cgroups => ../../../cgroups
-
-replace github.com/containerd/containerd/v2 => ../../../containerd
+replace (
+	github.com/Code-Hex/vz/v3 => ../vz
+	github.com/containerd/containerd => /tmp/tmpcontainerd
+	github.com/containerd/containerd/api => ../../../containerd/api
+	// github.com/containerd/containerd/runtime/v2 => ../containerd/runtime
+	github.com/containerd/containerd/v2 => ../../../containerd
+	gvisor.dev/gvisor => ../gvisor
+)
 
 // WARNING: Do NOT use `replace` directives as those break dependabot:
 // https://github.com/kata-containers/kata-containers/issues/11020
@@ -23,7 +24,7 @@ require (
 	github.com/containerd/console v1.0.4
 	github.com/containerd/containerd v1.7.27
 	github.com/containerd/containerd/api v1.9.0-rc.0
-	github.com/containerd/containerd/v2 v2.0.0-00010101000000-000000000000
+	github.com/containerd/containerd/v2 v2.0.5
 	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/ttrpc v1.2.7
@@ -62,7 +63,7 @@ require (
 	go.opentelemetry.io/otel/exporters/jaeger v1.0.0
 	go.opentelemetry.io/otel/sdk v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
-	golang.org/x/oauth2 v0.27.0
+	golang.org/x/oauth2 v0.28.0
 	golang.org/x/sys v0.32.0
 	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
@@ -73,7 +74,7 @@ require (
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 // indirect
-	github.com/AdamKorcz/go-118-fuzz-build v0.0.0-20230306123547-8075edf89bb0 // indirect
+	github.com/AdamKorcz/go-118-fuzz-build v0.0.0-20231105174938-2b5cbb29f3e2 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Microsoft/hcsshim v0.13.0-rc.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
@@ -88,6 +89,7 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v1.0.0-rc.1 // indirect
 	github.com/containerd/plugin v1.0.0 // indirect
+	github.com/containerd/typeurl v1.0.2 // indirect
 	github.com/containernetworking/cni v1.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.6.0 // indirect
