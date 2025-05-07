@@ -16,6 +16,8 @@ import (
 
 var MockHybridVSockPath = "/tmp/kata-mock-hybrid-vsock.socket"
 
+var _ Hypervisor = &mockHypervisor{}
+
 type mockHypervisor struct {
 	config  HypervisorConfig
 	mockPid int
@@ -31,13 +33,13 @@ func (m *mockHypervisor) HypervisorConfig() HypervisorConfig {
 	return m.config
 }
 
-func (m *mockHypervisor) setConfig(config *HypervisorConfig) error {
+func (m *mockHypervisor) SetConfig(config *HypervisorConfig) error {
 	m.config = *config
 	return nil
 }
 
 func (m *mockHypervisor) CreateVM(ctx context.Context, id string, network Network, hypervisorConfig *HypervisorConfig) error {
-	if err := m.setConfig(hypervisorConfig); err != nil {
+	if err := m.SetConfig(hypervisorConfig); err != nil {
 		return err
 	}
 	m.config.MemSlots = 0
@@ -128,11 +130,11 @@ func (m *mockHypervisor) GetVirtioFsPid() *int {
 	return nil
 }
 
-func (m *mockHypervisor) fromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
+func (m *mockHypervisor) FromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
 	return errors.New("mockHypervisor is not supported by VM cache")
 }
 
-func (m *mockHypervisor) toGrpc(ctx context.Context) ([]byte, error) {
+func (m *mockHypervisor) ToGrpc(ctx context.Context) ([]byte, error) {
 	return nil, errors.New("mockHypervisor is not supported by VM cache")
 }
 

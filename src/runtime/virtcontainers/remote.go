@@ -23,6 +23,8 @@ import (
 
 const defaultMinTimeout = 60
 
+var _ Hypervisor = &remoteHypervisor{}
+
 type remoteHypervisor struct {
 	sandboxID       remoteHypervisorSandboxID
 	agentSocketPath string
@@ -63,7 +65,7 @@ func (rh *remoteHypervisor) CreateVM(ctx context.Context, id string, network Net
 
 	rh.sandboxID = remoteHypervisorSandboxID(id)
 
-	if err := rh.setConfig(hypervisorConfig); err != nil {
+	if err := rh.SetConfig(hypervisorConfig); err != nil {
 		return err
 	}
 
@@ -258,7 +260,7 @@ func (rh *remoteHypervisor) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-func (rh *remoteHypervisor) setConfig(config *HypervisorConfig) error {
+func (rh *remoteHypervisor) SetConfig(config *HypervisorConfig) error {
 	// Create a Validator specific for remote hypervisor
 	rh.config = *config
 
@@ -274,11 +276,11 @@ func (rh *remoteHypervisor) GetVirtioFsPid() *int {
 	return nil
 }
 
-func (rh *remoteHypervisor) fromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
+func (rh *remoteHypervisor) FromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
 	panic(notImplemented("fromGrpc"))
 }
 
-func (rh *remoteHypervisor) toGrpc(ctx context.Context) ([]byte, error) {
+func (rh *remoteHypervisor) ToGrpc(ctx context.Context) ([]byte, error) {
 	panic(notImplemented("toGrpc"))
 }
 

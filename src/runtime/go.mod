@@ -4,12 +4,11 @@ module github.com/kata-containers/kata-containers/src/runtime
 go 1.24.2
 
 replace (
-	github.com/Code-Hex/vz/v3 => ../vz
-	github.com/containerd/containerd => /tmp/tmpcontainerd
+	github.com/Code-Hex/vz/v3 => ../../../vz
+	github.com/containerd/containerd => /tmp/containerd
 	github.com/containerd/containerd/api => ../../../containerd/api
-	// github.com/containerd/containerd/runtime/v2 => ../containerd/runtime
 	github.com/containerd/containerd/v2 => ../../../containerd
-	gvisor.dev/gvisor => ../gvisor
+	gvisor.dev/gvisor => ../../../gvisor
 )
 
 // WARNING: Do NOT use `replace` directives as those break dependabot:
@@ -18,6 +17,7 @@ replace (
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20211005130812-5bb3c17173e5
 	github.com/BurntSushi/toml v1.4.0
+	github.com/Code-Hex/vz/v3 v3.6.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/containerd/cgroups v1.1.0
@@ -59,6 +59,7 @@ require (
 	github.com/safchain/ethtool v0.5.10
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
+	github.com/urfave/cli v1.22.16
 	github.com/vishvananda/netlink v1.3.1-0.20250303224720-0e7078ed04c8
 	github.com/vishvananda/netns v0.0.5
 	gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20220601114329-47893b162965
@@ -77,6 +78,7 @@ require (
 )
 
 require (
+	github.com/Code-Hex/go-infinity-channel v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Microsoft/hcsshim v0.13.0-rc.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
@@ -87,6 +89,7 @@ require (
 	github.com/containerd/continuity v0.4.5 // indirect
 	github.com/containerd/go-runc v1.1.0 // indirect
 	github.com/containernetworking/cni v1.3.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
@@ -115,6 +118,7 @@ require (
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230914150019-408c51e934dc // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.mongodb.org/mongo-driver v1.11.3 // indirect

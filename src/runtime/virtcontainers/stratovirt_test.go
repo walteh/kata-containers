@@ -336,7 +336,7 @@ func TestStratovirtCapabilities(t *testing.T) {
 
 	sConfig.SharedFS = config.VirtioFS
 
-	err = sv.setConfig(&sConfig)
+	err = sv.SetConfig(&sConfig)
 	assert.NoError(err)
 
 	var ctx context.Context
@@ -345,7 +345,7 @@ func TestStratovirtCapabilities(t *testing.T) {
 
 	sConfig.SharedFS = config.NoSharedFS
 
-	err = sv.setConfig(&sConfig)
+	err = sv.SetConfig(&sConfig)
 	assert.NoError(err)
 
 	c = sv.Capabilities(ctx)
@@ -361,7 +361,7 @@ func TestStratovirtSetConfig(t *testing.T) {
 	sv := stratovirt{}
 	assert.Equal(sv.config, HypervisorConfig{})
 
-	err = sv.setConfig(&config)
+	err = sv.SetConfig(&config)
 	assert.NoError(err)
 
 	assert.Equal(sv.config, config)

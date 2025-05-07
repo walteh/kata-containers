@@ -577,11 +577,11 @@ func TestQemuGrpc(t *testing.T) {
 		config: config,
 	}
 
-	json, err := q.toGrpc(context.Background())
+	json, err := q.ToGrpc(context.Background())
 	assert.Nil(err)
 
 	var q2 qemu
-	err = q2.fromGrpc(context.Background(), &config, json)
+	err = q2.FromGrpc(context.Background(), &config, json)
 	assert.Nil(err)
 
 	assert.True(q.id == q2.id)
@@ -746,7 +746,7 @@ func TestQemuSetConfig(t *testing.T) {
 	q := &qemu{}
 
 	assert.Equal(q.config, HypervisorConfig{})
-	err := q.setConfig(&config)
+	err := q.SetConfig(&config)
 	assert.NoError(err)
 
 	assert.Equal(q.config, config)

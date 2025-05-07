@@ -188,7 +188,7 @@ func NewVMFromGrpc(ctx context.Context, v *pb.GrpcVM, config VMConfig) (*VM, err
 		}
 	}()
 
-	err = hypervisor.fromGrpc(ctx, &config.HypervisorConfig, v.Hypervisor)
+	err = hypervisor.FromGrpc(ctx, &config.HypervisorConfig, v.Hypervisor)
 	if err != nil {
 		return nil, err
 	}
@@ -369,7 +369,7 @@ func (v *VM) assignSandbox(s *Sandbox) error {
 
 // ToGrpc convert VM struct to Grpc format pb.GrpcVM.
 func (v *VM) ToGrpc(ctx context.Context, config VMConfig) (*pb.GrpcVM, error) {
-	hJSON, err := v.hypervisor.toGrpc(ctx)
+	hJSON, err := v.hypervisor.ToGrpc(ctx)
 	if err != nil {
 		return nil, err
 	}

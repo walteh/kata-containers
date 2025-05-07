@@ -90,6 +90,8 @@ type QemuState struct {
 	PCIeSwitchPort    uint32
 }
 
+var _ Hypervisor = &qemu{}
+
 // qemu is an Hypervisor interface implementation for the Linux qemu hypervisor.
 // nolint: govet
 type qemu struct {
@@ -245,7 +247,7 @@ func (q *qemu) setup(ctx context.Context, id string, hypervisorConfig *Hyperviso
 	span, _ := katatrace.Trace(ctx, q.Logger(), "setup", qemuTracingTags, map[string]string{"sandbox_id": q.id})
 	defer span.End()
 
-	if err := q.setConfig(hypervisorConfig); err != nil {
+	if err := q.SetConfig(hypervisorConfig); err != nil {
 		return err
 	}
 
@@ -513,7 +515,7 @@ func (q *qemu) setupFileBackedMem(knobs *govmmQemu.Knobs, memory *govmmQemu.Memo
 	memory.Path = target
 }
 
-func (q *qemu) setConfig(config *HypervisorConfig) error {
+func (q *qemu) SetConfig(config *HypervisorConfig) error {
 	q.config = *config
 
 	return nil
@@ -2895,7 +2897,7 @@ type qemuGrpc struct {
 	QemuSMP govmmQemu.SMP
 }
 
-func (q *qemu) fromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
+func (q *qemu) FromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
 	var qp qemuGrpc
 	err := json.Unmarshal(j, &qp)
 	if err != nil {
@@ -2921,7 +2923,7 @@ func (q *qemu) fromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig,
 	return nil
 }
 
-func (q *qemu) toGrpc(ctx context.Context) ([]byte, error) {
+func (q *qemu) ToGrpc(ctx context.Context) ([]byte, error) {
 	q.qmpShutdown()
 
 	q.Cleanup(ctx)

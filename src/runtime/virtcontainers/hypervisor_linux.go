@@ -6,8 +6,6 @@
 package virtcontainers
 
 import (
-	"fmt"
-
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/utils"
 )
@@ -25,24 +23,12 @@ func generateVMSocket(id string, vmStogarePath string) (interface{}, error) {
 	}, nil
 }
 
-// NewHypervisor returns an hypervisor from a hypervisor type.
-func NewHypervisor(hType HypervisorType) (Hypervisor, error) {
-	switch hType {
-	case QemuHypervisor:
-		return &qemu{}, nil
-	case FirecrackerHypervisor:
-		return &firecracker{}, nil
-	case ClhHypervisor:
-		return &cloudHypervisor{}, nil
-	case StratovirtHypervisor:
-		return &stratovirt{}, nil
-	case DragonballHypervisor:
-		return &mockHypervisor{}, nil
-	case RemoteHypervisor:
-		return &remoteHypervisor{}, nil
-	case MockHypervisor:
-		return &mockHypervisor{}, nil
-	default:
-		return nil, fmt.Errorf("Unknown hypervisor type %s", hType)
-	}
+func init() {
+	RegisterHypervisor(QemuHypervisor, func() Hypervisor { return &qemu{} })
+	RegisterHypervisor(FirecrackerHypervisor, func() Hypervisor { return &firecracker{} })
+	RegisterHypervisor(ClhHypervisor, func() Hypervisor { return &cloudHypervisor{} })
+	RegisterHypervisor(StratovirtHypervisor, func() Hypervisor { return &stratovirt{} })
+	RegisterHypervisor(DragonballHypervisor, func() Hypervisor { return &mockHypervisor{} })
+	RegisterHypervisor(RemoteHypervisor, func() Hypervisor { return &remoteHypervisor{} })
+	RegisterHypervisor(MockHypervisor, func() Hypervisor { return &mockHypervisor{} })
 }

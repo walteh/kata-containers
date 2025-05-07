@@ -249,6 +249,8 @@ func (s *CloudHypervisorState) reset() {
 	s.state = clhNotReady
 }
 
+var _ Hypervisor = &cloudHypervisor{}
+
 type cloudHypervisor struct {
 	console         console.Console
 	virtiofsDaemon  VirtiofsDaemon
@@ -315,7 +317,7 @@ func (clh *cloudHypervisor) getClhStopSandboxTimeout() time.Duration {
 	return clhStopSandboxTimeout
 }
 
-func (clh *cloudHypervisor) setConfig(config *HypervisorConfig) error {
+func (clh *cloudHypervisor) SetConfig(config *HypervisorConfig) error {
 	clh.config = *config
 
 	return nil
@@ -492,7 +494,7 @@ func (clh *cloudHypervisor) CreateVM(ctx context.Context, id string, network Net
 	clh.ctx = newCtx
 	defer span.End()
 
-	if err := clh.setConfig(hypervisorConfig); err != nil {
+	if err := clh.SetConfig(hypervisorConfig); err != nil {
 		return err
 	}
 
@@ -1176,11 +1178,11 @@ func (clh *cloudHypervisor) StopVM(ctx context.Context, waitOnly bool) (err erro
 	return clh.terminate(ctx, waitOnly)
 }
 
-func (clh *cloudHypervisor) fromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
+func (clh *cloudHypervisor) FromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
 	return errors.New("cloudHypervisor is not supported by VM cache")
 }
 
-func (clh *cloudHypervisor) toGrpc(ctx context.Context) ([]byte, error) {
+func (clh *cloudHypervisor) ToGrpc(ctx context.Context) ([]byte, error) {
 	return nil, errors.New("cloudHypervisor is not supported by VM cache")
 }
 

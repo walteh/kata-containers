@@ -286,7 +286,7 @@ func GetHypervisorSocketTemplate(hType HypervisorType, config *HypervisorConfig)
 		return "", err
 	}
 
-	if err := hypervisor.setConfig(config); err != nil {
+	if err := hypervisor.SetConfig(config); err != nil {
 		return "", err
 	}
 
@@ -707,6 +707,10 @@ type HypervisorConfig struct {
 // vcpu mapping from vcpu number to thread number
 type VcpuThreadIDs struct {
 	vcpus map[int]int
+}
+
+func NewVcpuThreadIds(input map[int]int) VcpuThreadIDs {
+	return VcpuThreadIDs{vcpus: input}
 }
 
 func (conf *HypervisorConfig) CheckTemplateConfig() error {
@@ -1133,11 +1137,11 @@ type Hypervisor interface {
 	Cleanup(ctx context.Context) error
 	// getPids returns a slice of hypervisor related process ids.
 	// The hypervisor pid must be put at index 0.
-	setConfig(config *HypervisorConfig) error
+	SetConfig(config *HypervisorConfig) error
 	GetPids() []int
 	GetVirtioFsPid() *int
-	fromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error
-	toGrpc(ctx context.Context) ([]byte, error)
+	FromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error
+	ToGrpc(ctx context.Context) ([]byte, error)
 	Check() error
 
 	Save() hv.HypervisorState

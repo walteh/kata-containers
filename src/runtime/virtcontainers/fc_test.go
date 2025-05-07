@@ -181,7 +181,7 @@ func TestFCToGrpc(t *testing.T) {
 
 	fc := firecracker{}
 	ctx := context.Background()
-	_, err := fc.toGrpc(ctx)
+	_, err := fc.ToGrpc(ctx)
 	assert.Error(err)
 }
 
@@ -250,7 +250,7 @@ func TestFcSetConfig(t *testing.T) {
 
 	assert.Equal(fc.config, HypervisorConfig{})
 
-	err := fc.setConfig(&config)
+	err := fc.SetConfig(&config)
 	assert.NoError(err)
 
 	assert.Equal(fc.config, config)

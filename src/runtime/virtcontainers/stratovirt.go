@@ -320,6 +320,8 @@ type State struct {
 	virtiofsPid  int
 }
 
+var _ Hypervisor = &stratovirt{}
+
 type stratovirt struct {
 	id             string
 	path           string
@@ -575,7 +577,7 @@ func (s *stratovirt) setVMConfig(id string, hypervisorConfig *HypervisorConfig) 
 	}
 
 	s.id = id
-	if err := s.setConfig(hypervisorConfig); err != nil {
+	if err := s.SetConfig(hypervisorConfig); err != nil {
 		return err
 	}
 
@@ -1247,7 +1249,7 @@ func (s *stratovirt) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-func (s *stratovirt) setConfig(config *HypervisorConfig) error {
+func (s *stratovirt) SetConfig(config *HypervisorConfig) error {
 	s.config = *config
 
 	return nil
@@ -1264,11 +1266,11 @@ func (s *stratovirt) GetVirtioFsPid() *int {
 	return &s.state.virtiofsPid
 }
 
-func (s *stratovirt) fromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
+func (s *stratovirt) FromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
 	return errors.New("StratoVirt is not supported by VM cache")
 }
 
-func (s *stratovirt) toGrpc(ctx context.Context) ([]byte, error) {
+func (s *stratovirt) ToGrpc(ctx context.Context) ([]byte, error) {
 	return nil, errors.New("StratoVirt is not supported by VM cache")
 }
 

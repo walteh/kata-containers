@@ -135,6 +135,8 @@ func (s *firecrackerState) set(state vmmState) {
 	s.state = state
 }
 
+var _ Hypervisor = &firecracker{}
+
 // firecracker is an Hypervisor interface implementation for the firecracker VMM.
 type firecracker struct {
 	console console.Console
@@ -187,7 +189,7 @@ func (fc *firecracker) truncateID(id string) string {
 	return id
 }
 
-func (fc *firecracker) setConfig(config *HypervisorConfig) error {
+func (fc *firecracker) SetConfig(config *HypervisorConfig) error {
 	fc.config = *config
 
 	return nil
@@ -206,7 +208,7 @@ func (fc *firecracker) CreateVM(ctx context.Context, id string, network Network,
 	fc.id = fc.truncateID(id)
 	fc.state.set(notReady)
 
-	if err := fc.setConfig(hypervisorConfig); err != nil {
+	if err := fc.SetConfig(hypervisorConfig); err != nil {
 		return err
 	}
 
@@ -1239,11 +1241,11 @@ func (fc *firecracker) GetVirtioFsPid() *int {
 	return nil
 }
 
-func (fc *firecracker) fromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
+func (fc *firecracker) FromGrpc(ctx context.Context, hypervisorConfig *HypervisorConfig, j []byte) error {
 	return errors.New("firecracker is not supported by VM cache")
 }
 
-func (fc *firecracker) toGrpc(ctx context.Context) ([]byte, error) {
+func (fc *firecracker) ToGrpc(ctx context.Context) ([]byte, error) {
 	return nil, errors.New("firecracker is not supported by VM cache")
 }
 

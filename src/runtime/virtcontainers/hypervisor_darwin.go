@@ -5,25 +5,15 @@
 
 package virtcontainers
 
-import (
-	"fmt"
-)
-
 const (
 	QemuCCWVirtio = "qemu-ccw-virtio"
 )
 
-// NewHypervisor returns a hypervisor from a hypervisor type.
-func NewHypervisor(hType HypervisorType) (Hypervisor, error) {
-	switch hType {
-	case VirtframeworkHypervisor:
-		return &virtFramework{}, nil
-	case MockHypervisor:
-		return &mockHypervisor{}, nil
-	default:
-		return nil, fmt.Errorf("Unknown hypervisor type %s", hType)
-	}
+func init() {
+	RegisterHypervisor(MockHypervisor, func() Hypervisor { return &mockHypervisor{} })
 }
+
+// NewHypervisor returns a hypervisor from a hypervisor type.
 
 func availableGuestProtection() (guestProtection, error) {
 	return noneProtection, nil
