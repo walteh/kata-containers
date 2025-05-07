@@ -6,7 +6,10 @@
 package resourcecontrol
 
 import (
-	"errors"
+	"fmt"
+	"path/filepath"
+
+	"gitlab.com/tozd/go/errors"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -21,8 +24,25 @@ func IsCgroupV1() (bool, error) {
 
 type DarwinResourceController struct{}
 
+const (
+	// prepend a kata specific string to oci cgroup path to
+	// form a different cgroup path, thus cAdvisor couldn't
+	// find kata containers cgroup path on host to prevent it
+	// from grabbing the stats data.
+	CgroupKataPrefix = "kata"
+
+	// cgroup v2 mount point
+	unifiedMountpoint = "/sys/fs/cgroup"
+)
+
 func RenameCgroupPath(path string) (string, error) {
-	return "", errors.New("RenameCgroupPath not supported on Darwin")
+	if path == "" {
+		path = DefaultResourceControllerID
+	}
+
+	cgroupPathDir := filepath.Dir(path)
+	cgroupPathName := fmt.Sprintf("%s_%s", CgroupKataPrefix, filepath.Base(path))
+	return filepath.Join(cgroupPathDir, cgroupPathName), nil
 }
 
 func NewResourceController(path string, resources *specs.LinuxResources) (ResourceController, error) {

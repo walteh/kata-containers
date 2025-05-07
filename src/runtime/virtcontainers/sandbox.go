@@ -28,13 +28,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 
-	cri "github.com/containerd/containerd/pkg/cri/annotations"
 	crio "github.com/containers/podman/v4/pkg/annotations"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/device/api"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/device/config"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/device/drivers"
 	deviceManager "github.com/kata-containers/kata-containers/src/runtime/pkg/device/manager"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/katautils/katatrace"
+	criannotations "github.com/kata-containers/kata-containers/src/runtime/pkg/oci/annotations"
 	resCtrl "github.com/kata-containers/kata-containers/src/runtime/pkg/resourcecontrol"
 	exp "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/experimental"
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/persist"
@@ -692,13 +692,13 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
 func setHypervisorConfigAnnotations(sandboxConfig *SandboxConfig) {
 	if len(sandboxConfig.Containers) > 0 {
 		// These values are required by remote hypervisor
-		for _, a := range []string{cri.SandboxName, crio.SandboxName} {
+		for _, a := range []string{criannotations.SandboxName, crio.SandboxName} {
 			if value, ok := sandboxConfig.Containers[0].Annotations[a]; ok {
 				sandboxConfig.HypervisorConfig.SandboxName = value
 			}
 		}
 
-		for _, a := range []string{cri.SandboxNamespace, crio.Namespace} {
+		for _, a := range []string{criannotations.SandboxNamespace, crio.Namespace} {
 			if value, ok := sandboxConfig.Containers[0].Annotations[a]; ok {
 				sandboxConfig.HypervisorConfig.SandboxNamespace = value
 			}

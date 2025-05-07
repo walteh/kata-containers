@@ -33,8 +33,8 @@ import (
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/compatoci"
 	katatypes "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"gitlab.com/tozd/go/errors"
 	otelTrace "go.opentelemetry.io/otel/trace"
 	"golang.org/x/sys/unix"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -283,7 +283,7 @@ func (s *service) Create(ctx context.Context, r *taskAPI.CreateTaskRequest) (_ *
 	defer s.mu.Unlock()
 
 	if err := katautils.VerifyContainerID(r.ID); err != nil {
-		return nil, err
+		return nil, errors.Errorf("verify container id: %v", err)
 	}
 
 	type Result struct {
@@ -293,7 +293,7 @@ func (s *service) Create(ctx context.Context, r *taskAPI.CreateTaskRequest) (_ *
 	ch := make(chan Result, 1)
 	go func() {
 		container, err := create(ctx, s, r)
-		ch <- Result{container, err}
+		ch <- Result{container, errors.Errorf("create container with id %s: %w", r.ID, err)}
 	}()
 
 	select {

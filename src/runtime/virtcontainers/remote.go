@@ -11,14 +11,14 @@ import (
 	"strconv"
 	"time"
 
-	cri "github.com/containerd/containerd/pkg/cri/annotations"
 	"github.com/containerd/ttrpc"
 	persistapi "github.com/kata-containers/kata-containers/src/runtime/pkg/hypervisors"
+	"github.com/kata-containers/kata-containers/src/runtime/pkg/oci/annotations"
 	pb "github.com/kata-containers/kata-containers/src/runtime/protocols/hypervisor"
 	hypannotations "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/annotations"
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"gitlab.com/tozd/go/errors"
 )
 
 const defaultMinTimeout = 60
@@ -73,20 +73,20 @@ func (rh *remoteHypervisor) CreateVM(ctx context.Context, id string, network Net
 	}
 	defer s.Close()
 
-	annotations := map[string]string{}
-	annotations[cri.SandboxName] = hypervisorConfig.SandboxName
-	annotations[cri.SandboxNamespace] = hypervisorConfig.SandboxNamespace
-	annotations[hypannotations.MachineType] = hypervisorConfig.HypervisorMachineType
-	annotations[hypannotations.ImagePath] = hypervisorConfig.ImagePath
-	annotations[hypannotations.DefaultVCPUs] = strconv.FormatUint(uint64(hypervisorConfig.NumVCPUs()), 10)
-	annotations[hypannotations.DefaultMemory] = strconv.FormatUint(uint64(hypervisorConfig.MemorySize), 10)
-	annotations[hypannotations.Initdata] = hypervisorConfig.Initdata
-	annotations[hypannotations.DefaultGPUs] = strconv.FormatUint(uint64(hypervisorConfig.DefaultGPUs), 10)
-	annotations[hypannotations.DefaultGPUModel] = hypervisorConfig.DefaultGPUModel
+	anno := map[string]string{}
+	anno[annotations.SandboxName] = hypervisorConfig.SandboxName
+	anno[annotations.SandboxNamespace] = hypervisorConfig.SandboxNamespace
+	anno[hypannotations.MachineType] = hypervisorConfig.HypervisorMachineType
+	anno[hypannotations.ImagePath] = hypervisorConfig.ImagePath
+	anno[hypannotations.DefaultVCPUs] = strconv.FormatUint(uint64(hypervisorConfig.NumVCPUs()), 10)
+	anno[hypannotations.DefaultMemory] = strconv.FormatUint(uint64(hypervisorConfig.MemorySize), 10)
+	anno[hypannotations.Initdata] = hypervisorConfig.Initdata
+	anno[hypannotations.DefaultGPUs] = strconv.FormatUint(uint64(hypervisorConfig.DefaultGPUs), 10)
+	anno[hypannotations.DefaultGPUModel] = hypervisorConfig.DefaultGPUModel
 
 	req := &pb.CreateVMRequest{
 		Id:                   id,
-		Annotations:          annotations,
+		Annotations:          anno,
 		NetworkNamespacePath: network.NetworkID(),
 	}
 
@@ -177,7 +177,7 @@ func (rh *remoteHypervisor) GenerateSocket(id string) (interface{}, error) {
 
 func notImplemented(name string) error {
 
-	err := errors.Errorf("%s: not implemented", name)
+	err := errors.Errorf("%s: not implemented (remote hypervisor)", name)
 
 	logrus.Errorf(err.Error())
 

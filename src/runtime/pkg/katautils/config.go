@@ -8,13 +8,14 @@
 package katautils
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	goruntime "runtime"
 	"strings"
+
+	"gitlab.com/tozd/go/errors"
 
 	"github.com/BurntSushi/toml"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/device/config"
@@ -47,12 +48,13 @@ const (
 // The currently supported types are listed below:
 const (
 	// supported hypervisor component types
-	firecrackerHypervisorTableType = "firecracker"
-	clhHypervisorTableType         = "clh"
-	qemuHypervisorTableType        = "qemu"
-	dragonballHypervisorTableType  = "dragonball"
-	stratovirtHypervisorTableType  = "stratovirt"
-	remoteHypervisorTableType      = "remote"
+	firecrackerHypervisorTableType   = "firecracker"
+	clhHypervisorTableType           = "clh"
+	qemuHypervisorTableType          = "qemu"
+	dragonballHypervisorTableType    = "dragonball"
+	stratovirtHypervisorTableType    = "stratovirt"
+	remoteHypervisorTableType        = "remote"
+	virtframeworkHypervisorTableType = "virtframework"
 
 	// the maximum amount of PCI bridges that can be cold plugged in a VM
 	maxPCIBridges uint32 = 5
@@ -341,7 +343,7 @@ func (h hypervisor) PFlash() ([]string, error) {
 	for _, pflash := range pflashes {
 		_, err := ResolvePath(pflash)
 		if err != nil {
-			return []string{}, fmt.Errorf("failed to resolve path: %s: %v", pflash, err)
+			return []string{}, errors.Errorf("failed to resolve path: %s: %v", pflash, err)
 		}
 	}
 
@@ -554,7 +556,7 @@ func (h hypervisor) blockDeviceDriver() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("Invalid hypervisor block storage driver %v specified (supported drivers: %v)", h.BlockDeviceDriver, supportedBlockDrivers)
+	return "", errors.Errorf("Invalid hypervisor block storage driver %v specified (supported drivers: %v)", h.BlockDeviceDriver, supportedBlockDrivers)
 }
 
 func (h hypervisor) blockDeviceAIO() (string, error) {
@@ -570,7 +572,7 @@ func (h hypervisor) blockDeviceAIO() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("Invalid hypervisor block storage I/O mechanism  %v specified (supported AIO: %v)", h.BlockDeviceAIO, supportedBlockAIO)
+	return "", errors.Errorf("Invalid hypervisor block storage I/O mechanism  %v specified (supported AIO: %v)", h.BlockDeviceAIO, supportedBlockAIO)
 }
 
 func (h hypervisor) extraMonitorSocket() (govmmQemu.MonitorProtocol, error) {
@@ -586,7 +588,7 @@ func (h hypervisor) extraMonitorSocket() (govmmQemu.MonitorProtocol, error) {
 		}
 	}
 
-	return "", fmt.Errorf("Invalid hypervisor extra monitor socket %v specified (supported values: %v)", h.ExtraMonitorSocket, supportedExtraMonitor)
+	return "", errors.Errorf("Invalid hypervisor extra monitor socket %v specified (supported values: %v)", h.ExtraMonitorSocket, supportedExtraMonitor)
 }
 
 func (h hypervisor) sharedFS() (string, error) {
@@ -602,7 +604,7 @@ func (h hypervisor) sharedFS() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("Invalid hypervisor shared file system %v specified (supported file systems: %v)", h.SharedFS, supportedSharedFS)
+	return "", errors.Errorf("Invalid hypervisor shared file system %v specified (supported file systems: %v)", h.SharedFS, supportedSharedFS)
 }
 
 func (h hypervisor) msize9p() uint32 {
@@ -900,7 +902,7 @@ func newQemuHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
 
 	if (sharedFS == config.VirtioFS || sharedFS == config.VirtioFSNydus) && h.VirtioFSDaemon == "" {
 		return vc.HypervisorConfig{},
-			fmt.Errorf("cannot enable %s without daemon path in configuration file", sharedFS)
+			errors.Errorf("cannot enable %s without daemon path in configuration file", sharedFS)
 	}
 
 	if vSock, err := utils.SupportsVsocks(); !vSock {
@@ -1046,12 +1048,12 @@ func newClhHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
 
 	if sharedFS != config.VirtioFS && sharedFS != config.VirtioFSNydus && sharedFS != config.NoSharedFS {
 		return vc.HypervisorConfig{},
-			fmt.Errorf("Cloud Hypervisor does not support %s shared filesystem option", sharedFS)
+			errors.Errorf("Cloud Hypervisor does not support %s shared filesystem option", sharedFS)
 	}
 
 	if (sharedFS == config.VirtioFS || sharedFS == config.VirtioFSNydus) && h.VirtioFSDaemon == "" {
 		return vc.HypervisorConfig{},
-			fmt.Errorf("cannot enable %s without daemon path in configuration file", sharedFS)
+			errors.Errorf("cannot enable %s without daemon path in configuration file", sharedFS)
 	}
 
 	return vc.HypervisorConfig{
@@ -1206,12 +1208,12 @@ func newStratovirtHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
 
 	if sharedFS != config.VirtioFS && sharedFS != config.VirtioFSNydus && sharedFS != config.NoSharedFS {
 		return vc.HypervisorConfig{},
-			fmt.Errorf("Stratovirt Hypervisor does not support %s shared filesystem option", sharedFS)
+			errors.Errorf("Stratovirt Hypervisor does not support %s shared filesystem option", sharedFS)
 	}
 
 	if (sharedFS == config.VirtioFS || sharedFS == config.VirtioFSNydus) && h.VirtioFSDaemon == "" {
 		return vc.HypervisorConfig{},
-			fmt.Errorf("cannot enable %s without daemon path in configuration file", sharedFS)
+			errors.Errorf("cannot enable %s without daemon path in configuration file", sharedFS)
 	}
 
 	return vc.HypervisorConfig{
@@ -1268,6 +1270,38 @@ func newRemoteHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
 	}, nil
 }
 
+func newVirtframeworkHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
+	initrd, err := h.initrd()
+	if err != nil {
+		return vc.HypervisorConfig{}, err
+	}
+
+	rootfsType, err := h.rootfsType()
+	if err != nil {
+		return vc.HypervisorConfig{}, err
+	}
+
+	kernel, err := h.kernel()
+	if err != nil {
+		return vc.HypervisorConfig{}, err
+	}
+
+	kernelParams := h.kernelParams()
+
+	return vc.HypervisorConfig{
+		KernelPath:      kernel,
+		InitrdPath:      initrd,
+		RootfsType:      rootfsType,
+		KernelParams:    vc.DeserializeParams(vc.KernelParamFields(kernelParams)),
+		NumVCPUsF:       h.defaultVCPUs(),
+		DefaultMaxVCPUs: h.defaultMaxVCPUs(),
+		MemorySize:      h.defaultMemSz(),
+		MemSlots:        h.defaultMemSlots(),
+		EntropySource:   h.GetEntropySource(),
+		Debug:           h.Debug,
+	}, nil
+}
+
 func newFactoryConfig(f factory) (oci.FactoryConfig, error) {
 	if f.TemplatePath == "" {
 		f.TemplatePath = defaultTemplatePath
@@ -1307,12 +1341,15 @@ func updateRuntimeConfigHypervisor(configPath string, tomlConf tomlConfig, confi
 		case remoteHypervisorTableType:
 			config.HypervisorType = vc.RemoteHypervisor
 			hConfig, err = newRemoteHypervisorConfig(hypervisor)
+		case virtframeworkHypervisorTableType:
+			config.HypervisorType = vc.VirtframeworkHypervisor
+			hConfig, err = newVirtframeworkHypervisorConfig(hypervisor)
 		default:
-			err = fmt.Errorf("%s: %+q", errInvalidHypervisorPrefix, k)
+			err = errors.Errorf("%s: %+q", errInvalidHypervisorPrefix, k)
 		}
 
 		if err != nil {
-			return fmt.Errorf("%v: %v", configPath, err)
+			return errors.Errorf("%v: %v", configPath, err)
 		}
 
 		config.HypervisorConfig = hConfig
@@ -1403,7 +1440,7 @@ func updateRuntimeConfig(configPath string, tomlConf tomlConfig, config *oci.Run
 
 	fConfig, err := newFactoryConfig(tomlConf.Factory)
 	if err != nil {
-		return fmt.Errorf("%v: %v", configPath, err)
+		return errors.Errorf("%v: %v", configPath, err)
 	}
 	config.FactoryConfig = fConfig
 
@@ -1506,12 +1543,12 @@ func LoadConfiguration(configPath string, ignoreLogging bool) (resolvedConfigPat
 
 	config, err = initConfig()
 	if err != nil {
-		return "", oci.RuntimeConfig{}, err
+		return "", oci.RuntimeConfig{}, errors.Errorf("initConfig: %w", err)
 	}
 
 	tomlConf, resolved, err := decodeConfig(configPath)
 	if err != nil {
-		return "", oci.RuntimeConfig{}, err
+		return "", oci.RuntimeConfig{}, errors.Errorf("decodeConfig: %w", err)
 	}
 
 	config.Debug = tomlConf.Runtime.Debug
@@ -1527,7 +1564,7 @@ func LoadConfiguration(configPath string, ignoreLogging bool) (resolvedConfigPat
 	if tomlConf.Runtime.InterNetworkModel != "" {
 		err = config.InterNetworkModel.SetModel(tomlConf.Runtime.InterNetworkModel)
 		if err != nil {
-			return "", config, err
+			return "", config, errors.Errorf("setInterNetworkModel: %w", err)
 		}
 	}
 
@@ -1535,14 +1572,14 @@ func LoadConfiguration(configPath string, ignoreLogging bool) (resolvedConfigPat
 		err = config.VfioMode.VFIOSetMode(tomlConf.Runtime.VfioMode)
 
 		if err != nil {
-			return "", config, err
+			return "", config, errors.Errorf("setVFIOSetMode: %w", err)
 		}
 	}
 
 	if !ignoreLogging {
 		err := handleSystemLog("", "")
 		if err != nil {
-			return "", config, err
+			return "", config, errors.Errorf("handleSystemLog: %w", err)
 		}
 
 		kataUtilsLogger.WithFields(
@@ -1553,7 +1590,7 @@ func LoadConfiguration(configPath string, ignoreLogging bool) (resolvedConfigPat
 	}
 
 	if err := updateRuntimeConfig(resolved, tomlConf, &config); err != nil {
-		return "", config, err
+		return "", config, errors.Errorf("updateRuntimeConfig: %w", err)
 	}
 
 	config.DisableGuestSeccomp = tomlConf.Runtime.DisableGuestSeccomp
@@ -1570,13 +1607,13 @@ func LoadConfiguration(configPath string, ignoreLogging bool) (resolvedConfigPat
 	for _, f := range tomlConf.Runtime.Experimental {
 		feature := exp.Get(f)
 		if feature == nil {
-			return "", config, fmt.Errorf("Unsupported experimental feature %q", f)
+			return "", config, errors.Errorf("Unsupported experimental feature %q", f)
 		}
 		config.Experimental = append(config.Experimental, *feature)
 	}
 
 	if err = validateBindMounts(tomlConf.Runtime.SandboxBindMounts); err != nil {
-		return "", config, err
+		return "", config, errors.Errorf("validateBindMounts: %w", err)
 	}
 	config.SandboxBindMounts = tomlConf.Runtime.SandboxBindMounts
 
@@ -1584,7 +1621,7 @@ func LoadConfiguration(configPath string, ignoreLogging bool) (resolvedConfigPat
 
 	config.DanConfig = tomlConf.Runtime.DanConf
 	if err := checkConfig(config); err != nil {
-		return "", config, err
+		return "", config, errors.Errorf("checkConfig: %w", err)
 	}
 
 	return resolved, config, nil
@@ -1601,7 +1638,7 @@ func validateBindMounts(mounts []string) error {
 	for _, m := range mounts {
 		path, err := ResolvePath(m)
 		if err != nil {
-			return fmt.Errorf("sandbox-bindmounts: Failed to resolve path: %s: %v", m, err)
+			return errors.Errorf("sandbox-bindmounts: Failed to resolve path: %s: %v", m, err)
 		}
 
 		base := filepath.Base(path)
@@ -1609,7 +1646,7 @@ func validateBindMounts(mounts []string) error {
 		if _, ok := bases[base]; !ok {
 			bases[base] = struct{}{}
 		} else {
-			return fmt.Errorf("sandbox-bindmounts: File %s has base that matches already specified bindmount", path)
+			return errors.Errorf("sandbox-bindmounts: File %s has base that matches already specified bindmount", path)
 		}
 	}
 	return nil
@@ -1629,22 +1666,22 @@ func decodeConfig(configPath string) (tomlConfig, string, error) {
 	}
 
 	if err != nil {
-		return tomlConf, "", fmt.Errorf("Cannot find usable config file (%v)", err)
+		return tomlConf, "", errors.Errorf("Cannot find usable config file (%v)", err)
 	}
 
 	configData, err := os.ReadFile(resolved)
 	if err != nil {
-		return tomlConf, resolved, err
+		return tomlConf, resolved, errors.Errorf("reading config file: %w", err)
 	}
 
 	_, err = toml.Decode(string(configData), &tomlConf)
 	if err != nil {
-		return tomlConf, resolved, err
+		return tomlConf, resolved, errors.Errorf("decoding config file: %w", err)
 	}
 
 	err = decodeDropIns(resolved, &tomlConf)
 	if err != nil {
-		return tomlConf, resolved, err
+		return tomlConf, resolved, errors.Errorf("decoding drop ins: %w", err)
 	}
 
 	return tomlConf, resolved, nil
@@ -1657,7 +1694,7 @@ func decodeDropIns(mainConfigPath string, tomlConf *tomlConfig) error {
 	files, err := os.ReadDir(dropInDir)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return fmt.Errorf("error reading %q directory: %s", dropInDir, err)
+			return errors.Errorf("error reading %q directory: %s", dropInDir, err)
 		} else {
 			return nil
 		}
@@ -1678,7 +1715,7 @@ func decodeDropIns(mainConfigPath string, tomlConf *tomlConfig) error {
 func updateFromDropIn(dropInFpath string, tomlConf *tomlConfig) error {
 	configData, err := os.ReadFile(dropInFpath)
 	if err != nil {
-		return fmt.Errorf("error reading file %q: %s", dropInFpath, err)
+		return errors.Errorf("error reading file %q: %s", dropInFpath, err)
 	}
 
 	// Ordinarily, BurntSushi only updates fields of tomlConfig that are
@@ -1694,7 +1731,7 @@ func updateFromDropIn(dropInFpath string, tomlConf *tomlConfig) error {
 	md, err = toml.Decode(string(configData), &tomlConf)
 
 	if err != nil {
-		return fmt.Errorf("error decoding file %q: %s", dropInFpath, err)
+		return errors.Errorf("error decoding file %q: %s", dropInFpath, err)
 	}
 
 	if len(md.Undecoded()) > 0 {
@@ -1705,7 +1742,7 @@ func updateFromDropIn(dropInFpath string, tomlConf *tomlConfig) error {
 	for _, key := range md.Keys() {
 		err = applyKey(*tomlConf, key, &tomlConfOrig)
 		if err != nil {
-			return fmt.Errorf("error applying key '%+v' from drop-in file %q: %s", key, dropInFpath, err)
+			return errors.Errorf("error applying key '%+v' from drop-in file %q: %s", key, dropInFpath, err)
 		}
 	}
 
@@ -1774,11 +1811,11 @@ func applyHypervisorKey(sourceConf tomlConfig, key []string, targetConf *tomlCon
 func copyFieldValue(source reflect.Value, tomlKeyName string, target reflect.Value) error {
 	val, err := getValue(source, tomlKeyName)
 	if err != nil {
-		return fmt.Errorf("error getting key %q from a decoded drop-in conf file: %s", tomlKeyName, err)
+		return errors.Errorf("error getting key %q from a decoded drop-in conf file: %s", tomlKeyName, err)
 	}
 	err = setValue(target, tomlKeyName, val)
 	if err != nil {
-		return fmt.Errorf("error setting key %q to a new value '%v': %s", tomlKeyName, val.Interface(), err)
+		return errors.Errorf("error setting key %q to a new value '%v': %s", tomlKeyName, val.Interface(), err)
 	}
 	return nil
 }
@@ -1795,7 +1832,7 @@ func getValue(tomlConfStruct reflect.Value, tomlKey string) (reflect.Value, erro
 			return tomlConfStruct.Field(j), nil
 		}
 	}
-	return reflect.Value{}, fmt.Errorf("key %q not found", tomlKey)
+	return reflect.Value{}, errors.Errorf("key %q not found", tomlKey)
 }
 
 // The first argument is expected to be a reflect.Value of a tomlConfig
@@ -1812,21 +1849,21 @@ func setValue(tomlConfStruct reflect.Value, tomlKey string, newVal reflect.Value
 			return nil
 		}
 	}
-	return fmt.Errorf("key %q not found", tomlKey)
+	return errors.Errorf("key %q not found", tomlKey)
 }
 
 // checkConfig checks the validity of the specified config.
 func checkConfig(config oci.RuntimeConfig) error {
 	if err := checkNetNsConfig(config); err != nil {
-		return err
+		return errors.Errorf("checkNetNsConfig: %w", err)
 	}
 
 	if err := checkHypervisorConfig(config.HypervisorConfig); err != nil {
-		return err
+		return errors.Errorf("checkHypervisorConfig: %w", err)
 	}
 
 	if err := checkFactoryConfig(config); err != nil {
-		return err
+		return errors.Errorf("checkFactoryConfig: %w", err)
 	}
 
 	hotPlugVFIO := config.HypervisorConfig.HotPlugVFIO
@@ -1834,7 +1871,7 @@ func checkConfig(config oci.RuntimeConfig) error {
 	machineType := config.HypervisorConfig.HypervisorMachineType
 	hypervisorType := config.HypervisorType
 	if err := checkPCIeConfig(coldPlugVFIO, hotPlugVFIO, machineType, hypervisorType); err != nil {
-		return err
+		return errors.Errorf("checkPCIeConfig: %w", err)
 	}
 
 	return nil
@@ -1850,7 +1887,7 @@ func checkPCIeConfig(coldPlug config.PCIePort, hotPlug config.PCIePort, machineT
 	}
 
 	if coldPlug != config.NoPort && hotPlug != config.NoPort {
-		return fmt.Errorf("invalid hot-plug=%s and cold-plug=%s settings, only one of them can be set", coldPlug, hotPlug)
+		return errors.Errorf("invalid hot-plug=%s and cold-plug=%s settings, only one of them can be set", coldPlug, hotPlug)
 	}
 	if coldPlug == config.NoPort && hotPlug == config.NoPort {
 		return nil
@@ -1862,10 +1899,10 @@ func checkPCIeConfig(coldPlug config.PCIePort, hotPlug config.PCIePort, machineT
 	}
 	if hypervisorType == virtcontainers.ClhHypervisor {
 		if coldPlug != config.NoPort {
-			return fmt.Errorf("cold-plug not supported on CLH")
+			return errors.Errorf("cold-plug not supported on CLH")
 		}
 		if hotPlug != config.RootPort {
-			return fmt.Errorf("only hot-plug=%s supported on CLH", config.RootPort)
+			return errors.Errorf("only hot-plug=%s supported on CLH", config.RootPort)
 		}
 	}
 
@@ -1879,7 +1916,7 @@ func checkPCIeConfig(coldPlug config.PCIePort, hotPlug config.PCIePort, machineT
 	if port == config.BridgePort || port == config.RootPort || port == config.SwitchPort {
 		return nil
 	}
-	return fmt.Errorf("invalid vfio_port=%s setting, allowed values %s, %s, %s, %s",
+	return errors.Errorf("invalid vfio_port=%s setting, allowed values %s, %s, %s, %s",
 		coldPlug, config.NoPort, config.BridgePort, config.RootPort, config.SwitchPort)
 }
 
@@ -1888,7 +1925,7 @@ func checkPCIeConfig(coldPlug config.PCIePort, hotPlug config.PCIePort, machineT
 func checkNetNsConfig(config oci.RuntimeConfig) error {
 	if config.DisableNewNetNs {
 		if config.InterNetworkModel != vc.NetXConnectNoneModel {
-			return fmt.Errorf("config disable_new_netns only works with 'none' internetworking_model")
+			return errors.Errorf("config disable_new_netns only works with 'none' internetworking_model")
 		}
 	}
 
@@ -1951,11 +1988,11 @@ func checkHypervisorConfig(config vc.HypervisorConfig) error {
 
 		imageSizeBytes, err := fileSize(image.path)
 		if err != nil {
-			return err
+			return errors.Errorf("image fileSize: %s: %w", image.path, err)
 		}
 
 		if imageSizeBytes == 0 {
-			return fmt.Errorf("image %q is empty", image.path)
+			return errors.Errorf("image %q is empty", image.path)
 		}
 
 		if imageSizeBytes > mb {

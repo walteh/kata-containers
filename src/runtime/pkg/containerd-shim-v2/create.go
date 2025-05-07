@@ -22,14 +22,15 @@ import (
 	taskAPI "github.com/containerd/containerd/api/runtime/task/v3"
 	containerd_types "github.com/containerd/containerd/api/types"
 	"github.com/containerd/containerd/v2/core/mount"
+	"github.com/containerd/log"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/device/config"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/utils"
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers"
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/annotations"
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/rootless"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"gitlab.com/tozd/go/errors"
 
 	// only register the proto type
 	// _ "github.com/containerd/containerd/v2/core/runtime/linux/runctypes"
@@ -254,9 +255,12 @@ func loadSpec(r *taskAPI.CreateTaskRequest) (*specs.Spec, string, error) {
 // 2. shimv2 create task option
 // 3. environment
 func loadRuntimeConfig(s *service, r *taskAPI.CreateTaskRequest, anno map[string]string) (*oci.RuntimeConfig, error) {
+	log.L.Infof("loadRuntimeConfig anno: %v", anno)
+
 	if s.config != nil {
 		return s.config, nil
 	}
+
 	configPath := oci.GetSandboxConfigPath(anno)
 	if configPath == "" && r.Options != nil {
 		// v, err := typeurl.UnmarshalAny(r.Options)
@@ -289,7 +293,7 @@ func loadRuntimeConfig(s *service, r *taskAPI.CreateTaskRequest, anno map[string
 
 	_, runtimeConfig, err := katautils.LoadConfiguration(configPath, false)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load configuration: %w: anno: %v", err, anno)
 	}
 
 	// For the unit test, the config will be predefined
@@ -332,7 +336,7 @@ func doMount(mounts []*containerd_types.Mount, rootfs string) error {
 
 	if _, err := os.Stat(rootfs); os.IsNotExist(err) {
 		if err := os.Mkdir(rootfs, 0711); err != nil {
-			return err
+			return errors.Errorf("failed to create rootfs: %w", err)
 		}
 	}
 
@@ -343,7 +347,7 @@ func doMount(mounts []*containerd_types.Mount, rootfs string) error {
 			Options: rm.Options,
 		}
 		if err := m.Mount(rootfs); err != nil {
-			return errors.Wrapf(err, "failed to mount rootfs component %v", m)
+			return errors.Errorf("failed to mount rootfs component %v: %w", m, err)
 		}
 	}
 	return nil

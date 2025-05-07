@@ -26,6 +26,7 @@ import (
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/device/drivers"
 	volume "github.com/kata-containers/kata-containers/src/runtime/pkg/direct-volume"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/katautils/katatrace"
+	"github.com/kata-containers/kata-containers/src/runtime/pkg/oci/annotations"
 	"github.com/kata-containers/kata-containers/src/runtime/pkg/uuid"
 	persistapi "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/persist/api"
 	pbTypes "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/agent/protocols"
@@ -36,7 +37,6 @@ import (
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/utils"
 
-	ctrAnnotations "github.com/containerd/containerd/pkg/cri/annotations"
 	podmanAnnotations "github.com/containers/podman/v4/pkg/annotations"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -452,7 +452,7 @@ func (k *kataAgent) configure(ctx context.Context, h Hypervisor, id, sharePath s
 	case types.RemoteSock:
 	case types.MockHybridVSock:
 	default:
-		return types.ErrInvalidConfigType
+		return fmt.Errorf("invalid socket type: %T", s)
 	}
 
 	// Neither create shared directory nor add 9p device if hypervisor
@@ -1682,7 +1682,7 @@ func getContainerTypeforCRI(c *Container) (string, string) {
 
 	// CRIContainerTypeKeyList lists all the CRI keys that could define
 	// the container type from annotations in the config.json.
-	CRIContainerTypeKeyList := []string{ctrAnnotations.ContainerType, podmanAnnotations.ContainerType}
+	CRIContainerTypeKeyList := []string{annotations.ContainerType, podmanAnnotations.ContainerType}
 	containerType := c.config.Annotations[vcAnnotations.ContainerTypeKey]
 	for _, key := range CRIContainerTypeKeyList {
 		_, ok := c.config.CustomSpec.Annotations[key]
@@ -1705,7 +1705,7 @@ func handleImageGuestPullBlockVolume(c *Container, virtualVolumeInfo *types.Kata
 		const kubernetesCRIOImageName = "io.kubernetes.cri-o.ImageName"
 
 		switch criContainerType {
-		case ctrAnnotations.ContainerType:
+		case annotations.ContainerType:
 			image_ref = container_annotations[kubernetesCRIImageName]
 		case podmanAnnotations.ContainerType:
 			image_ref = container_annotations[kubernetesCRIOImageName]

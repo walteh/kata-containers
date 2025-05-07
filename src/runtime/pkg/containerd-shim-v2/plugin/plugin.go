@@ -48,7 +48,7 @@ func init() {
 			// 	return nil, err
 			// }
 			log.L.Infof("New shim service: %v", ic)
-			return containerdshim.New(ic.Context, "kata-shim", pp.(shim.Publisher), ss.(shutdown.Service))
+			return containerdshim.New(ic.Context, "my_container", pp.(shim.Publisher), ss.(shutdown.Service))
 		},
 	})
 
